@@ -440,14 +440,14 @@ if [ $opt_c ]; then
                                         [ $opt_v ] && echo "no"
                                         [ $opt_v ] && echo -n "initializing ru.zolb:* properties..."
                                         [ $opt_n ] || zfs set ru.zolb:pause=true $opt_fs
-                                        [ $opt_n ] || zfs set ru.zolb:master=root\@`hostname` $opt_fs
+                                        [ $opt_n ] || zfs set ru.zolb:master=`whoami`\@`hostname` $opt_fs
                                         [ $opt_n ] || zfs set ru.zolb:source=$opt_fs $opt_fs
                                         [ $opt_n ] || zfs inherit ru.zolb:pause $opt_fs
                                         [ $opt_v ] && echo "done"
                                         ;;
                                 `hostname`) # wrong master
                                         [ $opt_v ] && echo -n "wrong! Correcting..."
-                                        [ $opt_n ] || zfs set ru.zolb:master=root\@`hostname` $opt_fs
+                                        [ $opt_n ] || zfs set ru.zolb:master=`whoami`\@`hostname` $opt_fs
                                         [ $opt_v ] && echo "done"
                                         ;;
                                 root\@`hostname`) # already master
