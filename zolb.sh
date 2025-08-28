@@ -4,6 +4,32 @@ EXITSTATUS=0
 debug() {
         echo "--DEBUG-- - $1 $2 $3 $4 $5 $6 $7 $8 $9"
 }
+
+self_update() {
+    DIR="$(cd "$(dirname "$0")" && pwd)"
+    TMP_DIR="$DIR/tmp_zolb"
+    ARCHIVE="$DIR/release.zip"
+
+    TAG=$(fetch -q -D - https://github.com/Datahider/zolb/releases/latest | grep -i location | awk -F/ '{print $NF}' | tr -d '\r\n')
+
+    fetch -o "$ARCHIVE" -q "https://github.com/Datahider/zolb/archive/refs/tags/$TAG.zip"
+    mkdir -p "$TMP_DIR"
+    unzip -q "$ARCHIVE" -d "$TMP_DIR"
+
+    INNER_DIR=$(find "$TMP_DIR" -mindepth 1 -maxdepth 1 -type d | head -n1)
+
+    for f in zolb.sh update_zolb.sh; do
+        if [ -f "$INNER_DIR/$f" ]; then
+            cp "$INNER_DIR/$f" "$DIR/$f"
+            chmod +x "$DIR/$f"
+        fi
+    done
+
+    rm -rf "$TMP_DIR" "$ARCHIVE"
+    echo "zolb.sh и update_zolb.sh обновлены до релиза $TAG."
+    exit 0
+}
+
 usage() {
         echo 'Usage: zolb [-nv] [-f filesystem] [-c command [parameters]]'
         echo '  -c command - supress normal operation and execute a command (see below)'
@@ -15,6 +41,7 @@ usage() {
         echo '  -n - dry-run'
         echo '  -p - power off when done'
         echo '  -s - sleep random (0..99) seconds before processing (use for cron)'
+        echo '  -u - self-update to latest release'
         echo '  -v - verbose'
         echo ''
         echo 'COMMANDS'
@@ -235,6 +262,9 @@ while true; do
                 -s)     opt_s=`grep -ao -m1 -E "[0-9]{2}" /dev/random | head -n 1`
                         shift
                         ;;
+                -u)     opt_u="-u"
+                        shift
+                        ;;
                 -v)
                         opt_v="-v"
                         shift
@@ -391,6 +421,11 @@ get_lock() {
 }
 
 eval `date -u "+year=%Y;month=%m;day=%d;hour=%H;minute=%M"`
+
+if [ $opt_l ]; then
+        self_update
+        exit 0
+fi
 
 if [ $opt_s ]; then
         get_lock
