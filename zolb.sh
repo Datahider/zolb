@@ -19,7 +19,7 @@ self_update() {
 
 
         if [ -z "$TAG" ]; then
-        echo "Не удалось определить последний релиз."
+        echo "Failed to determine the latest release."
         exit 1
         fi
 
@@ -39,14 +39,13 @@ self_update() {
                 if [ ! -f "$DIR/zolb.sh" ] || ! cmp -s "$INNER_DIR/zolb.sh" "$DIR/zolb.sh"; then
                         cp "$INNER_DIR/zolb.sh" "$DIR/zolb.sh"
                         chmod +x "$DIR/zolb.sh"
-                        echo "zolb.sh обновлен до релиза $TAG."
+                        echo "zolb.sh has been updated to release $TAG."
                 else
-                        echo "Обновление zolb.sh не требуется (релиз $TAG)."
+                        echo "zolb.sh is already up-to-date (релиз $TAG)."
                 fi
         fi
 
         rm -rf "$TMP_DIR" "$ARCHIVE"
-        echo "zolb.sh обновлен до релиза $TAG."
         exit 0
 }
 
