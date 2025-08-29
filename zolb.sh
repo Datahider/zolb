@@ -41,7 +41,7 @@ self_update() {
                         chmod +x "$DIR/zolb.sh"
                         echo "zolb.sh has been updated to release $TAG."
                 else
-                        echo "zolb.sh is already up-to-date (релиз $TAG)."
+                        echo "zolb.sh is already up-to-date (release $TAG)."
                 fi
         fi
 
