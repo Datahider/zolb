@@ -6,28 +6,45 @@ debug() {
 }
 
 self_update() {
-    DIR="$(cd "$(dirname "$0")" && pwd)"
-    TMP_DIR="$DIR/tmp_zolb"
-    ARCHIVE="$DIR/release.zip"
 
-    TAG=$(fetch -q -D - https://github.com/Datahider/zolb/releases/latest | grep -i location | awk -F/ '{print $NF}' | tr -d '\r\n')
 
-    fetch -o "$ARCHIVE" -q "https://github.com/Datahider/zolb/archive/refs/tags/$TAG.zip"
-    mkdir -p "$TMP_DIR"
-    unzip -q "$ARCHIVE" -d "$TMP_DIR"
+        DIR="$(cd "$(dirname "$0")" && pwd)"
+        TMP_DIR="$DIR/tmp_zolb"
+        ARCHIVE="$DIR/release.zip"
 
-    INNER_DIR=$(find "$TMP_DIR" -mindepth 1 -maxdepth 1 -type d | head -n1)
 
-    for f in zolb.sh update_zolb.sh; do
-        if [ -f "$INNER_DIR/$f" ]; then
-            cp "$INNER_DIR/$f" "$DIR/$f"
-            chmod +x "$DIR/$f"
+        # Получаем последний тег с GitHub через fetch (корректно для BSD fetch)
+        LOCATION=$(fetch -q -o - https://github.com/Datahider/zolb/releases/latest 2>&1 | grep -Eo 'https://github.com/Datahider/zolb/releases/tag/[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | tr -d '\r\n')
+        TAG=$(basename "$LOCATION")
+
+
+        if [ -z "$TAG" ]; then
+        echo "Не удалось определить последний релиз."
+        exit 1
         fi
-    done
 
-    rm -rf "$TMP_DIR" "$ARCHIVE"
-    echo "zolb.sh и update_zolb.sh обновлены до релиза $TAG."
-    exit 0
+
+        # Скачиваем архив с последнего релиза
+        fetch -o "$ARCHIVE" -q "https://github.com/Datahider/zolb/archive/refs/tags/$TAG.zip"
+
+
+        mkdir -p "$TMP_DIR"
+        unzip -q "$ARCHIVE" -d "$TMP_DIR"
+
+
+        INNER_DIR=$(find "$TMP_DIR" -mindepth 1 -maxdepth 1 -type d | head -n1)
+
+
+        # Обновляем только zolb.sh
+        if [ -f "$INNER_DIR/zolb.sh" ]; then
+        cp "$INNER_DIR/zolb.sh" "$DIR/zolb.sh"
+        chmod +x "$DIR/zolb.sh"
+        fi
+
+
+        rm -rf "$TMP_DIR" "$ARCHIVE"
+        echo "zolb.sh обновлен до релиза $TAG."
+        exit 0
 }
 
 usage() {
@@ -198,7 +215,7 @@ check_arg_init() {
 }
 
 
-args=`getopt c:df:Flmnpsv $*`
+args=`getopt c:df:Flmnpsuv $*`
 
 if [ $? -ne 0 ]; then
         usage
@@ -276,6 +293,10 @@ while true; do
 done
 [ $EXITSTATUS -ne 0 ] && exit $EXITSTATUS
 
+if [ $opt_u ]; then
+        self_update
+        exit 0
+fi
 
 if [ "$opt_c" = "true" ] && [ "$opt_f" != "true" ]; then
         [ ]; error_check $? "-c requires -f"
@@ -421,11 +442,6 @@ get_lock() {
 }
 
 eval `date -u "+year=%Y;month=%m;day=%d;hour=%H;minute=%M"`
-
-if [ $opt_l ]; then
-        self_update
-        exit 0
-fi
 
 if [ $opt_s ]; then
         get_lock
