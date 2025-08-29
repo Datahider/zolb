@@ -34,13 +34,16 @@ self_update() {
 
         INNER_DIR=$(find "$TMP_DIR" -mindepth 1 -maxdepth 1 -type d | head -n1)
 
-
-        # Обновляем только zolb.sh
+        # Обновляем только zolb.sh если содержимое изменилось
         if [ -f "$INNER_DIR/zolb.sh" ]; then
-        cp "$INNER_DIR/zolb.sh" "$DIR/zolb.sh"
-        chmod +x "$DIR/zolb.sh"
+                if [ ! -f "$DIR/zolb.sh" ] || ! cmp -s "$INNER_DIR/zolb.sh" "$DIR/zolb.sh"; then
+                        cp "$INNER_DIR/zolb.sh" "$DIR/zolb.sh"
+                        chmod +x "$DIR/zolb.sh"
+                        echo "zolb.sh обновлен до релиза $TAG."
+                else
+                        echo "Обновление zolb.sh не требуется (релиз $TAG)."
+                fi
         fi
-
 
         rm -rf "$TMP_DIR" "$ARCHIVE"
         echo "zolb.sh обновлен до релиза $TAG."
