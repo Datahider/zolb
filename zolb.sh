@@ -535,7 +535,7 @@ else
                                 [ "x$fs_pause" = "xtrue" ] && echo -n " ||"
                                 [ "x$fs_pause" = "xtrue" ] || echo -n ">>"
                                 [ "`hostname`" = "${fs_master#*@}" ] && echo "*" `zfs list -t all -d 1 -o name ${fs_name} | tail -n 1`
-                                [ "`hostname`" = "${fs_master#*@}" ] || echo "_" `zfs list -t all -d 1 -o name,ru.zolb:master,ru.zolb:source ${fs_name} | tail -r -n 1`
+                                [ "`hostname`" = "${fs_master#*@}" ] || echo "_" `zfs list -t all -d 1 -o name,ru.zolb:master,ru.zolb:source ${fs_name} | tail -n 1`
                                 continue
                         fi
                         if [ "x$fs_pause" != "xtrue" ]; then
