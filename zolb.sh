@@ -1,52 +1,53 @@
 #!/bin/sh
 EXITSTATUS=0
 
+# Автообновление
+SCRIPT_NAME="${0##*/}"
+SCRIPT_URL="https://ioannidis.ru/dl/$SCRIPT_NAME"
+MD5_URL="$SCRIPT_URL.md5"
+
+# Проверка обновлений
+CURRENT_MD5=$(md5sum "$0" 2>/dev/null | awk '{print $1}')
+
+# Проверяем доступность .md5 файла
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$MD5_URL" 2>/dev/null)
+
+if [ "$HTTP_CODE" = "200" ]; then
+    
+    # Файл существует, получаем MD5
+    REMOTE_MD5=$(curl -s --max-time 5 "$MD5_URL" 2>/dev/null | awk '{print $1}')
+
+    if [ -n "$REMOTE_MD5" ] && [ "$CURRENT_MD5" != "$REMOTE_MD5" ]; then
+        # Проверяем права перед скачиванием
+        if [ ! -w "$0" ]; then
+            echo "Нет прав на запись $SCRIPT_NAME. Обратитесь к администратору для обновления скрипта." >&2
+        else
+            echo "🔄 Обновление $SCRIPT_NAME..."
+
+            curl -s --max-time 10 "$SCRIPT_URL" -o "$0.new"
+            NEW_MD5=$(md5sum "$0.new" 2>/dev/null | awk '{print $1}')
+
+            if [ "$NEW_MD5" = "$REMOTE_MD5" ]; then
+                cp "$0" "$0.bak"
+                mv "$0.new" "$0"
+                chmod +x "$0"
+                echo "✅ Обновлено!"
+                exec "$0" "$@"
+            else
+                rm -f "$0.new"
+                echo "❌ Ошибка проверки MD5" >&2
+            fi
+        fi
+    fi
+else
+    # Файл .md5 не найден (404) или другая ошибка
+    echo "Файл $SCRIPT_NAME.md5 недоступен (HTTP $HTTP_CODE). Обновления отключены." >&2
+fi
+
+# Основной код
+
 debug() {
         echo "--DEBUG-- - $1 $2 $3 $4 $5 $6 $7 $8 $9"
-}
-
-self_update() {
-
-
-        DIR="$(cd "$(dirname "$0")" && pwd)"
-        TMP_DIR="$DIR/tmp_zolb"
-        ARCHIVE="$DIR/release.zip"
-
-
-        # Получаем последний тег с GitHub через fetch (корректно для BSD fetch)
-        LOCATION=$(fetch -q -o - https://github.com/Datahider/zolb/releases/latest 2>&1 | grep -Eo 'https://github.com/Datahider/zolb/releases/tag/[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | tr -d '\r\n')
-        TAG=$(basename "$LOCATION")
-
-
-        if [ -z "$TAG" ]; then
-        echo "Failed to determine the latest release."
-        exit 1
-        fi
-
-
-        # Скачиваем архив с последнего релиза
-        fetch -o "$ARCHIVE" -q "https://github.com/Datahider/zolb/archive/refs/tags/$TAG.zip"
-
-
-        mkdir -p "$TMP_DIR"
-        unzip -q "$ARCHIVE" -d "$TMP_DIR"
-
-
-        INNER_DIR=$(find "$TMP_DIR" -mindepth 1 -maxdepth 1 -type d | head -n1)
-
-        # Обновляем только zolb.sh если содержимое изменилось
-        if [ -f "$INNER_DIR/zolb.sh" ]; then
-                if [ ! -f "$DIR/zolb.sh" ] || ! cmp -s "$INNER_DIR/zolb.sh" "$DIR/zolb.sh"; then
-                        cp "$INNER_DIR/zolb.sh" "$DIR/zolb.sh"
-                        chmod +x "$DIR/zolb.sh"
-                        echo "zolb.sh has been updated to release $TAG."
-                else
-                        echo "zolb.sh is already up-to-date (release $TAG)."
-                fi
-        fi
-
-        rm -rf "$TMP_DIR" "$ARCHIVE"
-        exit 0
 }
 
 usage() {
@@ -281,9 +282,6 @@ while true; do
                 -s)     opt_s=`grep -ao -m1 -E "[0-9]{2}" /dev/random | head -n 1`
                         shift
                         ;;
-                -u)     opt_u="-u"
-                        shift
-                        ;;
                 -v)
                         opt_v="-v"
                         shift
@@ -294,11 +292,6 @@ while true; do
         esac
 done
 [ $EXITSTATUS -ne 0 ] && exit $EXITSTATUS
-
-if [ $opt_u ]; then
-        self_update
-        exit 0
-fi
 
 if [ "$opt_c" = "true" ] && [ "$opt_f" != "true" ]; then
         [ ]; error_check $? "-c requires -f"
