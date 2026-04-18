@@ -432,7 +432,8 @@ clean() {
 }
 
 get_lock() {
-    exec 9</tmp/zolb.lock
+    : >/tmp/zolb.lock
+    exec 9<>/tmp/zolb.lock
     flock -n 9
 }
 
